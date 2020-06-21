@@ -48,6 +48,9 @@ class LineRendererConfig<D> extends LayoutViewConfig
   /// Configures whether points representing the data will be drawn.
   final bool includePoints;
 
+  /// Configures whether the line representing the data will be drawn smoothed
+  final bool smoothLine;
+
   /// Configures whether an area skirt representing the data will be drawn.
   ///
   /// An area skirt will be drawn from the line for each series, down to the
@@ -75,6 +78,7 @@ class LineRendererConfig<D> extends LayoutViewConfig
       this.radiusPx = 3.5,
       this.stacked = false,
       this.strokeWidthPx = 2.0,
+      this.smoothLine,
       this.dashPattern,
       this.includeLine = true,
       this.includePoints = false,

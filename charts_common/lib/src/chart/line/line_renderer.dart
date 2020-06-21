@@ -190,6 +190,7 @@ class LineRenderer<D> extends BaseCartesianRenderer<D> {
             ..dashPattern = dashPattern
             ..domainExtent = _Range<D>(domain, domain)
             ..strokeWidthPx = strokeWidthPx
+            ..smoothLine = config.smoothLine
             ..styleKey = styleKey
             ..roundEndCaps = config.roundEndCaps;
 
@@ -610,6 +611,7 @@ class LineRenderer<D> extends BaseCartesianRenderer<D> {
         ..measureAxisPosition = measureAxis.getLocation(0.0)
         ..positionExtent = positionExtent
         ..strokeWidthPx = strokeWidthPx
+        ..smoothLine = config.smoothLine
         ..styleKey = lineStyleKey
         ..roundEndCaps = roundEndCaps);
     }
@@ -983,6 +985,7 @@ class LineRenderer<D> extends BaseCartesianRenderer<D> {
                 points: line.points,
                 stroke: line.color,
                 strokeWidthPx: line.strokeWidthPx,
+                smoothLine: line.smoothLine,
                 roundEndCaps: line.roundEndCaps);
           }
         });
@@ -1171,6 +1174,7 @@ class _LineRendererElement<D> {
   double measureAxisPosition;
   _Range<num> positionExtent;
   double strokeWidthPx;
+  bool smoothLine;
   String styleKey;
   bool roundEndCaps;
 
@@ -1184,6 +1188,7 @@ class _LineRendererElement<D> {
       ..measureAxisPosition = measureAxisPosition
       ..positionExtent = positionExtent
       ..strokeWidthPx = strokeWidthPx
+      ..smoothLine = smoothLine
       ..styleKey = styleKey
       ..roundEndCaps = roundEndCaps;
   }

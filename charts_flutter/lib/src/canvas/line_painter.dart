@@ -40,6 +40,7 @@ class LinePainter {
       common.Color stroke,
       bool roundEndCaps,
       double strokeWidthPx,
+      bool smoothLine,
       List<int> dashPattern,
       ui.Shader shader}) {
     if (points.isEmpty) {
@@ -79,9 +80,9 @@ class LinePainter {
           paint.strokeCap = StrokeCap.round;
         }
 
-        _drawSolidLine(canvas, paint, points);
+        _drawSolidLine(canvas, paint, smoothLine?? false, points);
       } else {
-        _drawDashedLine(canvas, paint, points, dashPattern);
+        _drawDashedLine(canvas, paint, smoothLine?? false, points, dashPattern);
       }
     }
 
@@ -91,22 +92,101 @@ class LinePainter {
   }
 
   /// Draws solid lines between each point.
-  void _drawSolidLine(Canvas canvas, Paint paint, List<Point> points) {
+  void _drawSolidLine(Canvas canvas, Paint paint, bool smoothLine, List<Point> points) {
     // TODO: Extract a native line component which constructs the
     // appropriate underlying data structures to avoid conversion.
     final path = new Path()
       ..moveTo(points.first.x.toDouble(), points.first.y.toDouble());
 
-    for (var point in points) {
-      path.lineTo(point.x.toDouble(), point.y.toDouble());
+    if (points.length == 2 || !smoothLine) {
+      for (var point in points) {
+        path.lineTo(point.x.toDouble(), point.y.toDouble());
+      }
+    } else {
+      final List<Point> bezierPoints = _generateSmoothPoints(points);
+
+      for (var i = 0; i < bezierPoints.length - 3; i += 3) {
+        path.cubicTo(
+            bezierPoints[i + 1].x.toDouble(),
+            bezierPoints[i + 1].y.toDouble(),
+            bezierPoints[i + 2].x.toDouble(),
+            bezierPoints[i + 2].y.toDouble(),
+            bezierPoints[i + 3].x.toDouble(),
+            bezierPoints[i + 3].y.toDouble(),
+        );
+      }
     }
 
     canvas.drawPath(path, paint);
   }
 
+  /// Gets a coefficient for generating smooth lines
+  double _getA(int index, int n) {
+    if (index == 0) return 0;
+    else if (index == n - 1) return 2;
+    else return 1;
+  }
+
+  /// Gets a coeffient for generating smooth lines
+  double _getB(int index, int n) {
+    if (index == 0) return 2;
+    else if (index == n - 1) return 7;
+    else return 4;
+  }
+
+  /// Creates a list of points for a smoothed path, which goes 'data, control, control, data, ...'
+  /// with control points used for creating cubic bezier curves
+  List<Point> _generateSmoothPoints(List<Point> points) {
+    var n = points.length - 1;
+    var targetVector = _generateTargetVector(points, n);
+    var result = List<Point>((3 * n) + 1);
+
+    result.last = points.last;
+
+    for (var index = n - 1; index >= 0; index -= 1) {
+      var resultIndex = index * 3;
+
+      var w = _getA(index, n) / _getB(index - 1, n);
+      double b;
+      Point d;
+      if (index > 0) {
+        b = _getB(index, n) - w;
+        d = targetVector[index] - (targetVector[index - 1] * w);
+      } else {
+        b = _getB(index, n);
+        d = targetVector[index];
+      }
+
+      if (index == n - 1) {
+        result[resultIndex + 2] = (points[index] + (d * (1 / b))) * 0.5;
+        result[resultIndex + 1] = d * (1 / b);
+      } else {
+        result[resultIndex + 2] = (points[index + 1] * 2) - result[resultIndex + 4];
+        result[resultIndex + 1] = (d - result[resultIndex + 3]) * (1 / b);
+      }
+      result[resultIndex] = points[index];
+    }
+
+    return result;
+  }
+
+  /// Generates the target, which is used to generate control handles for a smooth line
+  List<Point> _generateTargetVector(List<Point> points, int n) {
+    var result = List<Point>(n);
+    result[0] = points[0] + (points[1] * 2);
+
+    for (var index = 1; index < n - 1; index += 1) {
+      result[index] = ((points[index] * 2) + points[index + 1]) * 2;
+    } 
+    
+    result[n - 1] = (points[n - 1] * 8) + points[n];
+    
+    return result;
+  }
+
   /// Draws dashed lines lines between each point.
   void _drawDashedLine(
-      Canvas canvas, Paint paint, List<Point> points, List<int> dashPattern) {
+      Canvas canvas, Paint paint, bool smoothLine, List<Point> points, List<int> dashPattern) {
     final localDashPattern = new List.from(dashPattern);
 
     // If an odd number of parts are defined, repeat the pattern to get an even
